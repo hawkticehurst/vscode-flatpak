@@ -2,27 +2,46 @@ app-id: com.visualstudio.code
 runtime: org.freedesktop.Platform
 runtime-version: '23.08'
 sdk: org.freedesktop.Sdk
+
 command: code
+
+finish-args:
+  # Display / windowing
+  - --socket=x11
+  - --socket=wayland
+
+  # Audio
+  - --socket=pulseaudio
+
+  # Networking (extensions, marketplace, etc.)
+  - --share=network
+
+  # File access (loose on purpose for POC)
+  - --filesystem=host
+
+  # Needed by Electron / Chromium sandbox
+  - --device=dri
+  - --talk-name=org.freedesktop.Flatpak
 
 modules:
   - name: vscode
     buildsystem: simple
+
     build-commands:
-      - cp -r * /app/
+      # Install VS Code files
+      - mkdir -p /app/vscode
+      - cp -r * /app/vscode
+
+      # Install launcher into PATH
+      - mkdir -p /app/bin
+      - install -Dm755 /app/vscode/code /app/bin/code
+
+      # Ensure helper binaries are executable
+      - chmod +x /app/vscode/code
+      - chmod +x /app/vscode/chrome-sandbox || true
+
     sources:
       - type: archive
         url: https://update.code.visualstudio.com/latest/linux-x64/stable
         archive-type: tar-gzip
         sha256: PLACEHOLDER
-
-finish-args:
-  - --filesystem=home
-  - --filesystem=/mnt
-  - --filesystem=/media
-  - --filesystem=host
-  - --share=network
-  - --socket=x11
-  - --socket=wayland
-  - --socket=pulseaudio
-  - --device=all
-  - --talk-name=org.freedesktop.Flatpak
