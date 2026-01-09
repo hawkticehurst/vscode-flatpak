@@ -28,18 +28,6 @@ jobs:
           org.freedesktop.Platform//23.08 \
           org.freedesktop.Sdk//23.08
 
-    - name: Download VS Code tar.gz
-      run: |
-        if [ "${{ github.event.inputs.channel }}" = "insiders" ]; then
-          URL="https://update.code.visualstudio.com/latest/linux-x64/insider"
-        else
-          URL="https://update.code.visualstudio.com/latest/linux-x64/stable"
-        fi
-
-        curl -L "$URL" -o vscode.tar.gz
-        mkdir -p vscode-linux-x64
-        tar -xzf vscode.tar.gz -C vscode-linux-x64 --strip-components=1
-
     - name: Build Flatpak
       run: |
         mkdir -p build-dir
