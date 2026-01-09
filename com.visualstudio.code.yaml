@@ -12,7 +12,7 @@ modules:
     sources:
       - type: archive
         url: https://update.code.visualstudio.com/latest/linux-x64/stable
-        sha256: IGNORE
+        sha256: PLACEHOLDER
 
 finish-args:
   - --filesystem=home

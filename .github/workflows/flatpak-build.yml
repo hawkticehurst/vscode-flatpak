@@ -13,33 +13,61 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - name: Install Flatpak & Builder
-      run: |
-        sudo apt update
-        sudo apt install -y flatpak flatpak-builder curl tar
+      - name: Install Flatpak & Builder
+        run: |
+          sudo apt update
+          sudo apt install -y flatpak flatpak-builder curl tar
 
-    - name: Add Flathub and install SDK
-      run: |
-        sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-        sudo flatpak install -y flathub \
-          org.freedesktop.Platform//23.08 \
-          org.freedesktop.Sdk//23.08
+      - name: Add Flathub and install SDK
+        run: |
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y flathub \
+            org.freedesktop.Platform//23.08 \
+            org.freedesktop.Sdk//23.08
 
-    - name: Build Flatpak
-      run: |
-        mkdir -p build-dir
-        flatpak-builder --force-clean --repo=repo build-dir com.visualstudio.code.yaml
+      - name: Download VS Code tarball
+        run: |
+          if [ "${{ github.event.inputs.channel }}" = "insiders" ]; then
+            CHANNEL="insider"
+          else
+            CHANNEL="stable"
+          fi
 
-    - name: Export Flatpak bundle
-      run: |
-        flatpak build-bundle repo vscode.flatpak com.visualstudio.code
-        ls -lh vscode.flatpak
+          curl -L \
+            "https://update.code.visualstudio.com/latest/linux-x64/${CHANNEL}" \
+            -o vscode.tar.gz
 
-    - name: Upload Flatpak artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: vscode-flatpak
-        path: vscode.flatpak
+      - name: Compute checksum
+        id: checksum
+        run: |
+          SHA=$(sha256sum vscode.tar.gz | cut -d' ' -f1)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Patch Flatpak manifest
+        run: |
+          sed -i \
+            "s|sha256:.*|sha256: ${{ steps.checksum.outputs.sha }}|" \
+            com.visualstudio.code.yaml
+
+      - name: Build Flatpak
+        run: |
+          mkdir -p build-dir repo
+          flatpak-builder \
+            --force-clean \
+            --repo=repo \
+            build-dir \
+            com.visualstudio.code.yaml
+
+      - name: Export Flatpak bundle
+        run: |
+          flatpak build-bundle repo vscode.flatpak com.visualstudio.code
+          ls -lh vscode.flatpak
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-flatpak
+          path: vscode.flatpak
