@@ -12,6 +12,7 @@ modules:
     sources:
       - type: archive
         url: https://update.code.visualstudio.com/latest/linux-x64/stable
+        filename: vscode.tar.gz
         sha256: PLACEHOLDER
 
 finish-args:
