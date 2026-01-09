@@ -1,0 +1,50 @@
+name: Build VS Code Flatpak
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'VS Code channel (stable or insiders)'
+        required: true
+        default: 'stable'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Install Flatpak & Builder
+      run: |
+        sudo apt update
+        sudo apt install -y flatpak flatpak-builder curl tar
+
+    - name: Download VS Code tar.gz
+      run: |
+        if [ "${{ github.event.inputs.channel }}" == "insiders" ]; then
+          URL="https://update.code.visualstudio.com/latest/linux-x64/insider"
+        else
+          URL="https://update.code.visualstudio.com/latest/linux-x64/stable"
+        fi
+        mkdir -p vscode-linux-x64
+        curl -L $URL -o vscode.tar.gz
+        tar -xzf vscode.tar.gz -C vscode-linux-x64 --strip-components=1
+        ls -lh vscode-linux-x64
+
+    - name: Build Flatpak
+      run: |
+        mkdir -p build-dir
+        flatpak-builder --force-clean --repo=repo build-dir com.visualstudio.code.yaml
+
+    - name: Export Flatpak bundle
+      run: |
+        flatpak build-bundle repo vscode.flatpak com.visualstudio.code
+        ls -lh vscode.flatpak
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: vscode-flatpak
+        path: vscode.flatpak

@@ -1,0 +1,27 @@
+app-id: com.visualstudio.code
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: code
+
+modules:
+  - name: vscode
+    buildsystem: simple
+    build-commands:
+      # copy the extracted VS Code build into /app
+      - cp -r vscode-linux-x64/* /app/
+    sources:
+      - type: dir
+        path: ./vscode-linux-x64
+
+finish-args:
+  - --filesystem=home
+  - --filesystem=/mnt
+  - --filesystem=/media
+  - --filesystem=host
+  - --share=network
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=all
+  - --talk-name=org.freedesktop.Flatpak
