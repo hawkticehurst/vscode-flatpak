@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install Flatpak & Builder
       run: |
@@ -23,15 +23,15 @@ jobs:
 
     - name: Download VS Code tar.gz
       run: |
-        if [ "${{ github.event.inputs.channel }}" == "insiders" ]; then
+        if [ "${{ github.event.inputs.channel }}" = "insiders" ]; then
           URL="https://update.code.visualstudio.com/latest/linux-x64/insider"
         else
           URL="https://update.code.visualstudio.com/latest/linux-x64/stable"
         fi
+
+        curl -L "$URL" -o vscode.tar.gz
         mkdir -p vscode-linux-x64
-        curl -L $URL -o vscode.tar.gz
         tar -xzf vscode.tar.gz -C vscode-linux-x64 --strip-components=1
-        ls -lh vscode-linux-x64
 
     - name: Build Flatpak
       run: |
@@ -43,8 +43,8 @@ jobs:
         flatpak build-bundle repo vscode.flatpak com.visualstudio.code
         ls -lh vscode.flatpak
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
+    - name: Upload Flatpak artifact
+      uses: actions/upload-artifact@v4
       with:
         name: vscode-flatpak
         path: vscode.flatpak
