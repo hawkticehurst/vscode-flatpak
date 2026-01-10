@@ -28,25 +28,28 @@ jobs:
             org.freedesktop.Platform//23.08 \
             org.freedesktop.Sdk//23.08
 
-      - name: Resolve Flatpak sources and checksum
+      - name: Download VS Code and calculate checksum
+        id: checksum
         run: |
-          mkdir -p build-dir
-          flatpak-builder \
-            --download-only \
-            build-dir \
-            com.visualstudio.code.yaml
+          # Download VS Code tarball with error handling
+          curl -L --fail -o /tmp/vscode.tar.gz https://update.code.visualstudio.com/latest/linux-x64/${{ github.event.inputs.channel }}
+          # Verify the download succeeded
+          if [ ! -f /tmp/vscode.tar.gz ] || [ ! -s /tmp/vscode.tar.gz ]; then
+            echo "Error: Download failed or file is empty"
+            exit 1
+          fi
+          # Calculate SHA256 checksum
+          SHA=$(sha256sum /tmp/vscode.tar.gz | awk '{print $1}')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "Calculated checksum: $SHA"
 
-      - name: Extract resolved checksum
-        run: |
-          SHA=$(jq -r '.sources[0].sha256' build-dir/.flatpak-builder/metadata.json)
-          sed -i "s|sha256:.*|sha256: $SHA|" com.visualstudio.code.yaml
-
-
-      - name: Patch Flatpak manifest
+      - name: Patch Flatpak manifest with checksum
         run: |
           sed -i \
             "s|sha256:.*|sha256: ${{ steps.checksum.outputs.sha }}|" \
             com.visualstudio.code.yaml
+          echo "Updated manifest:"
+          grep sha256 com.visualstudio.code.yaml
 
       - name: Build Flatpak
         run: |
