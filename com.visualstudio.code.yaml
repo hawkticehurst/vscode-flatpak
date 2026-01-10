@@ -2,6 +2,8 @@ app-id: com.visualstudio.code
 runtime: org.freedesktop.Platform
 runtime-version: '23.08'
 sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '23.08'
 
 command: code
 
@@ -9,6 +11,7 @@ finish-args:
   # Display / windowing
   - --socket=x11
   - --socket=wayland
+  - --share=ipc
 
   # Audio
   - --socket=pulseaudio
@@ -21,7 +24,11 @@ finish-args:
 
   # Needed by Electron / Chromium sandbox
   - --device=dri
+  - --allow=devel
   - --talk-name=org.freedesktop.Flatpak
+
+  # Ensure libraries can be found
+  - --env=LD_LIBRARY_PATH=/app/lib
 
 modules:
   - name: vscode
@@ -32,9 +39,8 @@ modules:
       - mkdir -p /app/vscode
       - cp -r * /app/vscode
 
-      # Install launcher into PATH
-      - mkdir -p /app/bin
-      - install -Dm755 /app/vscode/code /app/bin/code
+      # Install launcher script into PATH
+      - install -Dm755 code.sh /app/bin/code
 
       # Ensure helper binaries are executable
       - chmod +x /app/vscode/code
@@ -45,3 +51,5 @@ modules:
         url: https://update.code.visualstudio.com/latest/linux-x64/stable
         archive-type: tar-gzip
         sha256: PLACEHOLDER
+      - type: file
+        path: code.sh
