@@ -28,23 +28,19 @@ jobs:
             org.freedesktop.Platform//23.08 \
             org.freedesktop.Sdk//23.08
 
-      - name: Download VS Code tarball
+      - name: Resolve Flatpak sources and checksum
         run: |
-          if [ "${{ github.event.inputs.channel }}" = "insiders" ]; then
-            CHANNEL="insider"
-          else
-            CHANNEL="stable"
-          fi
+          mkdir -p build-dir
+          flatpak-builder \
+            --download-only \
+            build-dir \
+            com.visualstudio.code.yaml
 
-          curl -L \
-            "https://update.code.visualstudio.com/latest/linux-x64/${CHANNEL}" \
-            -o vscode.tar.gz
-
-      - name: Compute checksum
-        id: checksum
+      - name: Extract resolved checksum
         run: |
-          SHA=$(sha256sum vscode.tar.gz | cut -d' ' -f1)
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          SHA=$(jq -r '.sources[0].sha256' build-dir/.flatpak-builder/metadata.json)
+          sed -i "s|sha256:.*|sha256: $SHA|" com.visualstudio.code.yaml
+
 
       - name: Patch Flatpak manifest
         run: |
