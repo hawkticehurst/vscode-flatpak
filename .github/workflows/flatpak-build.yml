@@ -4,9 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: "VS Code channel (stable or insiders)"
+        description: "VS Code channel"
         required: true
         default: "stable"
+        type: choice
+        options:
+          - stable
+          - insider
 
 jobs:
   build:
@@ -31,8 +35,10 @@ jobs:
       - name: Download VS Code and calculate checksum
         id: checksum
         run: |
+          CHANNEL="${{ github.event.inputs.channel }}"
+          echo "Downloading VS Code (channel: ${CHANNEL})"
           # Download VS Code tarball with error handling
-          curl -L --fail -o /tmp/vscode.tar.gz https://update.code.visualstudio.com/latest/linux-x64/${{ github.event.inputs.channel }}
+          curl -L --fail -o /tmp/vscode.tar.gz "https://update.code.visualstudio.com/latest/linux-x64/${CHANNEL}"
           # Verify the download succeeded
           if [ ! -f /tmp/vscode.tar.gz ] || [ ! -s /tmp/vscode.tar.gz ]; then
             echo "Error: Download failed or file is empty"
