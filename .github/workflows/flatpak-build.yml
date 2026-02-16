@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'VS Code channel (stable or insiders)'
+        description: "VS Code channel (stable or insiders)"
         required: true
-        default: 'stable'
+        default: "stable"
 
 jobs:
   build:
@@ -25,9 +25,8 @@ jobs:
         run: |
           sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           sudo flatpak install -y flathub \
-            org.freedesktop.Platform//23.08 \
-            org.freedesktop.Sdk//23.08 \
-            org.electronjs.Electron2.BaseApp//23.08
+            org.freedesktop.Sdk//25.08 \
+            org.electronjs.Electron2.BaseApp//25.08
 
       - name: Download VS Code and calculate checksum
         id: checksum
@@ -47,7 +46,7 @@ jobs:
       - name: Patch Flatpak manifest with checksum
         run: |
           sed -i \
-            "s|sha256:.*|sha256: ${{ steps.checksum.outputs.sha }}|" \
+            "s|sha256: PLACEHOLDER|sha256: ${{ steps.checksum.outputs.sha }}|" \
             com.visualstudio.code.yaml
           echo "Updated manifest:"
           grep sha256 com.visualstudio.code.yaml
