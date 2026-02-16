@@ -32,34 +32,52 @@ jobs:
             org.freedesktop.Sdk//25.08 \
             org.electronjs.Electron2.BaseApp//25.08
 
+      - name: Resolve latest VS Code version
+        id: version
+        run: |
+          CHANNEL="${{ github.event.inputs.channel }}"
+          if [ "${CHANNEL}" = "stable" ]; then
+            VERSION=$(curl -s https://api.github.com/repos/microsoft/vscode/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+          else
+            # For insider, query the insider releases (pre-releases)
+            VERSION=$(curl -s https://api.github.com/repos/microsoft/vscode/releases | grep '"tag_name"' | head -1 | cut -d'"' -f4)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+          echo "Resolved VS Code version: $VERSION (channel: $CHANNEL)"
+
       - name: Download VS Code and calculate checksum
         id: checksum
         run: |
-          CHANNEL="${{ github.event.inputs.channel }}"
-          echo "Downloading VS Code (channel: ${CHANNEL})"
-          curl -L --fail -o /tmp/vscode.tar.gz "https://update.code.visualstudio.com/latest/linux-x64/${CHANNEL}"
-          # Verify the download succeeded
+          VERSION="${{ steps.version.outputs.version }}"
+          CHANNEL="${{ steps.version.outputs.channel }}"
+          # Use a version-pinned URL so the download is deterministic.
+          # The /latest/ URL is non-deterministic and can change between requests,
+          # causing checksum mismatches when flatpak-builder re-downloads.
+          DOWNLOAD_URL="https://update.code.visualstudio.com/${VERSION}/linux-x64/${CHANNEL}"
+          echo "Downloading VS Code from: ${DOWNLOAD_URL}"
+          curl -L --fail -o /tmp/vscode.tar.gz "${DOWNLOAD_URL}"
           if [ ! -s /tmp/vscode.tar.gz ]; then
             echo "Error: Download failed or file is empty"
             exit 1
           fi
-          # Calculate SHA256 checksum
           SHA=$(sha256sum /tmp/vscode.tar.gz | awk '{print $1}')
           echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
           echo "Calculated checksum: $SHA"
-          # Place the archive into flatpak-builder's download cache keyed by sha256.
-          # This prevents flatpak-builder from re-downloading from the non-deterministic
-          # /latest/ URL, which can return a different version between requests.
-          mkdir -p .flatpak-builder/downloads
-          cp /tmp/vscode.tar.gz ".flatpak-builder/downloads/${SHA}"
 
-      - name: Patch Flatpak manifest with checksum
+      - name: Patch Flatpak manifest with version, URL, and checksum
         run: |
+          # Replace the /latest/ URL with the pinned version URL
+          sed -i \
+            "s|url: https://update.code.visualstudio.com/latest/linux-x64/stable|url: ${{ steps.checksum.outputs.url }}|" \
+            com.visualstudio.code.yaml
+          # Replace the placeholder checksum
           sed -i \
             "s|sha256: PLACEHOLDER|sha256: ${{ steps.checksum.outputs.sha }}|" \
             com.visualstudio.code.yaml
           echo "Updated manifest:"
-          grep sha256 com.visualstudio.code.yaml
+          grep -E 'url:|sha256:' com.visualstudio.code.yaml | head -4
 
       - name: Build Flatpak
         run: |
