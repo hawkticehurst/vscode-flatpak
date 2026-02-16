@@ -37,15 +37,18 @@ jobs:
         run: |
           CHANNEL="${{ github.event.inputs.channel }}"
           echo "Downloading VS Code (channel: ${CHANNEL})"
-          # Download VS Code tarball with error handling
-          curl -L --fail -o /tmp/vscode.tar.gz "https://update.code.visualstudio.com/latest/linux-x64/${CHANNEL}"
+          # Download VS Code tarball into a cache dir for flatpak-builder --extra-sources.
+          # The filename must match the last URL path segment (the channel name)
+          # so flatpak-builder recognizes it as the already-downloaded source.
+          mkdir -p /tmp/flatpak-sources
+          curl -L --fail -o "/tmp/flatpak-sources/${CHANNEL}" "https://update.code.visualstudio.com/latest/linux-x64/${CHANNEL}"
           # Verify the download succeeded
-          if [ ! -f /tmp/vscode.tar.gz ] || [ ! -s /tmp/vscode.tar.gz ]; then
+          if [ ! -s "/tmp/flatpak-sources/${CHANNEL}" ]; then
             echo "Error: Download failed or file is empty"
             exit 1
           fi
           # Calculate SHA256 checksum
-          SHA=$(sha256sum /tmp/vscode.tar.gz | awk '{print $1}')
+          SHA=$(sha256sum "/tmp/flatpak-sources/${CHANNEL}" | awk '{print $1}')
           echo "sha=$SHA" >> $GITHUB_OUTPUT
           echo "Calculated checksum: $SHA"
 
@@ -62,6 +65,7 @@ jobs:
           mkdir -p build-dir repo
           flatpak-builder \
             --force-clean \
+            --extra-sources=/tmp/flatpak-sources \
             --repo=repo \
             build-dir \
             com.visualstudio.code.yaml
