@@ -32,43 +32,29 @@ jobs:
             org.freedesktop.Sdk//25.08 \
             org.electronjs.Electron2.BaseApp//25.08
 
-      - name: Resolve latest VS Code version
-        id: version
-        run: |
-          CHANNEL="${{ github.event.inputs.channel }}"
-          if [ "${CHANNEL}" = "stable" ]; then
-            VERSION=$(curl -s https://api.github.com/repos/microsoft/vscode/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
-          else
-            # For insider, query the insider releases (pre-releases)
-            VERSION=$(curl -s https://api.github.com/repos/microsoft/vscode/releases | grep '"tag_name"' | head -1 | cut -d'"' -f4)
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
-          echo "Resolved VS Code version: $VERSION (channel: $CHANNEL)"
-
       - name: Download VS Code and calculate checksum
         id: checksum
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          CHANNEL="${{ steps.version.outputs.channel }}"
-          # Use a version-pinned URL so the download is deterministic.
-          # The /latest/ URL is non-deterministic and can change between requests,
-          # causing checksum mismatches when flatpak-builder re-downloads.
-          DOWNLOAD_URL="https://update.code.visualstudio.com/${VERSION}/linux-x64/${CHANNEL}"
-          echo "Downloading VS Code from: ${DOWNLOAD_URL}"
-          curl -L --fail -o /tmp/vscode.tar.gz "${DOWNLOAD_URL}"
+          CHANNEL="${{ github.event.inputs.channel }}"
+          # Resolve the final CDN URL from the /latest/ redirect.
+          # We use the resolved CDN URL in the manifest so flatpak-builder
+          # downloads from a stable, deterministic URL (not /latest/ which
+          # can change between requests causing checksum mismatches).
+          CDN_URL=$(curl -sIL -o /dev/null -w '%{url_effective}' "https://update.code.visualstudio.com/latest/linux-x64/${CHANNEL}")
+          echo "Resolved CDN URL: ${CDN_URL}"
+          curl -L --fail -o /tmp/vscode.tar.gz "${CDN_URL}"
           if [ ! -s /tmp/vscode.tar.gz ]; then
             echo "Error: Download failed or file is empty"
             exit 1
           fi
           SHA=$(sha256sum /tmp/vscode.tar.gz | awk '{print $1}')
           echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+          echo "url=$CDN_URL" >> $GITHUB_OUTPUT
           echo "Calculated checksum: $SHA"
 
-      - name: Patch Flatpak manifest with version, URL, and checksum
+      - name: Patch Flatpak manifest with resolved URL and checksum
         run: |
-          # Replace the /latest/ URL with the pinned version URL
+          # Replace the placeholder URL with the resolved CDN URL
           sed -i \
             "s|url: https://update.code.visualstudio.com/latest/linux-x64/stable|url: ${{ steps.checksum.outputs.url }}|" \
             com.visualstudio.code.yaml
