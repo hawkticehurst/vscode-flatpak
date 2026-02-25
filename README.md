@@ -1,17 +1,28 @@
 # Visual Studio Code Flatpak
 
-This repository contains a set of prototype build pipelines for VS Code and VS Code Insiders flatpak distributions.
+A set of prototype build pipelines for VS Code and VS Code Insiders flatpak distributions.
 
-## Usage
+## Install
 
-This repository builds two independent Flatpak apps:
+This repository checks for new VS Code and VS Code Insiders versions every 6 hours. If a new upstream version is found, a new flatpak build is triggered automatically.
 
-- Stable app ID: `com.visualstudio.code`
-- Insiders app ID: `com.visualstudio.code.insiders`
+Check the latest published builds on the Releases page: https://github.com/hawkticehurst/vscode-flatpak/releases.
+
+After downloading a release asset, install it from the directory where the `.flatpak` file was saved:
+
+```sh
+# Stable build artifact
+flatpak install --user ./vscode-flatpak-stable.flatpak
+
+# Insiders build artifact
+flatpak install --user ./vscode-flatpak-insider.flatpak
+```
 
 For a GUI-based experience, you can also use [Warehouse](https://flathub.org/en/apps/io.github.flattool.Warehouse) to manage the installation of these apps.
 
-For a CLI-based experience, use these commands:
+## Usage
+
+Once installed open the application as you would normally via your operating system GUI, or for a CLI-based experience, use these commands:
 
 ```sh
 # Run Stable
@@ -75,7 +86,7 @@ Using `flatpak-spawn`:
 
 ### SDK extensions for language support
 
-This Flatpak uses the `org.freedesktop.Sdk` runtime, which includes basic development tools (gcc, python, etc.). For additional language support, install SDK extensions:
+This flatpak uses the `org.freedesktop.Sdk` runtime, which includes basic development tools (gcc, python, etc.). For additional language support, install SDK extensions:
 
 ```sh
 flatpak install flathub org.freedesktop.Sdk.Extension.dotnet
@@ -106,7 +117,7 @@ ls /app/bin   # bundled with VS Code flatpak
 
 ## Building
 
-The Flatpak is built using split CI targets for Stable and Insiders.
+The flatpak is built using split CI targets for Stable and Insiders.
 
 Manifests:
 
