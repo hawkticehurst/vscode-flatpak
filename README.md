@@ -99,7 +99,21 @@ $ ls /app/bin   # bundled with this flatpak
 
 ## Building
 
-The Flatpak is built using a CI workflow that dynamically patches the VS Code archive checksum. To build locally:
+The Flatpak is built using split CI targets for Stable and Insiders.
+
+Manifests:
+
+- Stable: [com.visualstudio.code.yaml](com.visualstudio.code.yaml)
+- Insiders: [com.visualstudio.code.insiders.yaml](com.visualstudio.code.insiders.yaml)
+
+GitHub Actions workflows:
+
+- Stable workflow: [.github/workflows/flatpak-build.yml](.github/workflows/flatpak-build.yml)
+- Insiders workflow: [.github/workflows/flatpak-build-insiders.yml](.github/workflows/flatpak-build-insiders.yml)
+
+Each workflow independently resolves the current channel archive URL and patches the corresponding manifest checksum before building.
+
+To build locally:
 
 ```sh
 # Install flatpak-builder if not already installed
@@ -107,6 +121,9 @@ $ flatpak install flathub org.flatpak.Builder
 
 # Build
 $ flatpak-builder --force-clean build-dir com.visualstudio.code.yaml
+
+# Build Insiders
+$ flatpak-builder --force-clean build-dir com.visualstudio.code.insiders.yaml
 ```
 
 > **Note:** The `sha256: PLACEHOLDER` in the manifest is replaced automatically by CI. For local builds, you may need to download the archive manually and update the checksum.

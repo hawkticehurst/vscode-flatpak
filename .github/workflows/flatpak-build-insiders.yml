@@ -1,4 +1,4 @@
-name: Build VS Code Flatpak (Stable)
+name: Build VS Code Flatpak (Insiders)
 
 on:
   workflow_dispatch:
@@ -23,29 +23,29 @@ jobs:
             org.freedesktop.Sdk//25.08 \
             org.electronjs.Electron2.BaseApp//25.08
 
-      - name: Download VS Code and calculate checksum
+      - name: Download VS Code Insiders and calculate checksum
         id: checksum
         run: |
-          CHANNEL="stable"
+          CHANNEL="insider"
           # Resolve the final CDN URL from the /latest/ redirect.
           # We use the resolved CDN URL in the manifest so flatpak-builder
           # downloads from a stable, deterministic URL (not /latest/ which
           # can change between requests causing checksum mismatches).
           CDN_URL=$(curl -sIL -o /dev/null -w '%{url_effective}' "https://update.code.visualstudio.com/latest/linux-x64/${CHANNEL}")
           echo "Resolved CDN URL: ${CDN_URL}"
-          curl -L --fail -o /tmp/vscode.tar.gz "${CDN_URL}"
-          if [ ! -s /tmp/vscode.tar.gz ]; then
+          curl -L --fail -o /tmp/vscode-insiders.tar.gz "${CDN_URL}"
+          if [ ! -s /tmp/vscode-insiders.tar.gz ]; then
             echo "Error: Download failed or file is empty"
             exit 1
           fi
-          SHA=$(sha256sum /tmp/vscode.tar.gz | awk '{print $1}')
+          SHA=$(sha256sum /tmp/vscode-insiders.tar.gz | awk '{print $1}')
           echo "sha=$SHA" >> $GITHUB_OUTPUT
           echo "url=$CDN_URL" >> $GITHUB_OUTPUT
           echo "Calculated checksum: $SHA"
 
       - name: Patch Flatpak manifest with resolved URL and checksum
         run: |
-          MANIFEST="com.visualstudio.code.yaml"
+          MANIFEST="com.visualstudio.code.insiders.yaml"
           # Replace the placeholder URL with the resolved CDN URL
           sed -i \
             "s|url: PLACEHOLDER_URL|url: ${{ steps.checksum.outputs.url }}|" \
@@ -64,15 +64,15 @@ jobs:
             --force-clean \
             --repo=repo \
             build-dir \
-            com.visualstudio.code.yaml
+            com.visualstudio.code.insiders.yaml
 
       - name: Export Flatpak bundle
         run: |
-          flatpak build-bundle repo vscode-flatpak-stable.flatpak com.visualstudio.code
-          ls -lh vscode-flatpak-stable.flatpak
+          flatpak build-bundle repo vscode-flatpak-insider.flatpak com.visualstudio.code.insiders
+          ls -lh vscode-flatpak-insider.flatpak
 
       - name: Upload Flatpak artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vscode-flatpak-stable
-          path: vscode-flatpak-stable.flatpak
+          name: vscode-flatpak-insider
+          path: vscode-flatpak-insider.flatpak
