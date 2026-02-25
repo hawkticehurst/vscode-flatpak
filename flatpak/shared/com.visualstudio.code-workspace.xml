@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Shared MIME registration for *.code-workspace files.
+	Used by both Stable and Insiders manifests so desktop environments associate
+	workspace files with Visual Studio Code entries.
+-->
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
 	<mime-type type="application/x-code-workspace">
 		<comment>Visual Studio Code Workspace</comment>

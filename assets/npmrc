@@ -1,0 +1,9 @@
+; Flatpak-scoped npm defaults for VS Code.
+; Why this exists:
+; - Keeps npm global installs/config isolated inside the sandbox.
+; - Prevents writes to host-level $HOME/npm locations.
+; - Ensures extensions/tools installed via npm use XDG paths in the Flatpak.
+userconfig=${XDG_CONFIG_HOME}/npmrc
+prefix=${XDG_DATA_HOME}/node_modules
+init-module=${XDG_CONFIG_HOME}/npm-init.js
+tmp=${XDG_CACHE_HOME}

@@ -110,12 +110,12 @@ The Flatpak is built using split CI targets for Stable and Insiders.
 
 Manifests:
 
-- Stable: [com.visualstudio.code.yaml](com.visualstudio.code.yaml)
-- Insiders: [com.visualstudio.code.insiders.yaml](com.visualstudio.code.insiders.yaml)
+- Stable: [flatpak/stable/com.visualstudio.code.yaml](flatpak/stable/com.visualstudio.code.yaml)
+- Insiders: [flatpak/insiders/com.visualstudio.code.insiders.yaml](flatpak/insiders/com.visualstudio.code.insiders.yaml)
 
 GitHub Actions workflows:
 
-- Stable workflow: [.github/workflows/flatpak-build.yml](.github/workflows/flatpak-build.yml)
+- Stable workflow: [.github/workflows/flatpak-build-stable.yml](.github/workflows/flatpak-build-stable.yml)
 - Insiders workflow: [.github/workflows/flatpak-build-insiders.yml](.github/workflows/flatpak-build-insiders.yml)
 
 Each workflow independently resolves the current channel archive URL and patches the corresponding manifest checksum before building.
@@ -132,10 +132,10 @@ To build locally:
 flatpak install flathub org.flatpak.Builder
 
 # Build
-flatpak-builder --force-clean build-dir com.visualstudio.code.yaml
+flatpak-builder --force-clean build-dir flatpak/stable/com.visualstudio.code.yaml
 
 # Build Insiders
-flatpak-builder --force-clean build-dir com.visualstudio.code.insiders.yaml
+flatpak-builder --force-clean build-dir flatpak/insiders/com.visualstudio.code.insiders.yaml
 ```
 
 > **Note:** `url: PLACEHOLDER_URL` and `sha256: PLACEHOLDER` in manifests are replaced automatically by CI. For local builds, download the target archive and update both fields manually.

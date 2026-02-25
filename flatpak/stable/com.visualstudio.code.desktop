@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Visual Studio Code
-Comment=Code Editing. Redefined.
+Comment=The open source AI code editor
 GenericName=Text Editor
 Exec=code --reuse-window %F
 Icon=com.visualstudio.code

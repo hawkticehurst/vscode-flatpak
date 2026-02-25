@@ -1,21 +1,13 @@
 #!/bin/bash
-# Launcher script for VS Code Flatpak
+# Launcher script for VS Code Insiders Flatpak
 # Uses zypak-wrapper from Electron BaseApp to properly handle Electron sandboxing
 
 set -e
 shopt -s nullglob
 
-FIRST_RUN="${XDG_CONFIG_HOME}/flatpak-vscode-first-run"
-
 function msg() {
-  echo "flatpak-vscode: $*" >&2
+  echo "flatpak-vscode-insiders: $*" >&2
 }
-
-# Show first-run warning
-if [ ! -f "${FIRST_RUN}" ]; then
-  WARNING_FILE="/app/share/vscode/flatpak-warning.txt"
-  touch "${FIRST_RUN}"
-fi
 
 # Discover Python site-packages path for tool extensions
 PYTHON_SITEDIR=$(python3 <<EOFPYTHON
@@ -72,6 +64,6 @@ if [ ! -e /etc/shells ] && [ -e /var/run/host/etc/shells ]; then
 fi
 
 exec env ELECTRON_RUN_AS_NODE=1 PATH="${PATH}:${XDG_DATA_HOME}/node_modules/bin" \
-  /app/bin/zypak-wrapper.sh /app/vscode/code /app/vscode/resources/app/out/cli.js \
-  --extensions-dir="${XDG_DATA_HOME}/vscode/extensions" \
-  "$@" ${WARNING_FILE}
+  /app/bin/zypak-wrapper.sh /app/vscode/code-insiders /app/vscode/resources/app/out/cli.js \
+  --extensions-dir="${XDG_DATA_HOME}/vscode-insiders/extensions" \
+  "$@"

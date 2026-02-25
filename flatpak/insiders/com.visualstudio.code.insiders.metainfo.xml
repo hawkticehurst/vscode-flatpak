@@ -6,10 +6,9 @@
   <name>Visual Studio Code - Insiders</name>
   <developer_name>Microsoft Corporation</developer_name>
   <url type="homepage">https://code.visualstudio.com/insiders</url>
-  <url type="help">https://github.com/flathub/com.visualstudio.code?tab=readme-ov-file#usage</url>
-  <summary>Code editing. Redefined.</summary>
+  <url type="help">https://github.com/hawkticehurst/vscode-flatpak?tab=readme-ov-file#usage</url>
+  <summary>The open source AI code editor</summary>
   <description>
-    <p>**NOTE: This is the proprietary Microsoft Insiders build of Visual Studio Code, packaged into a Flatpak. This repackaging is not supported by Microsoft.**</p>
     <p>Visual Studio Code Insiders provides early access to upcoming features and daily updates.</p>
     <p>IMPORTANT: To use certain features in this flatpacked version (like the integrated terminal), please read the linked documentation.</p>
   </description>
@@ -23,4 +22,11 @@
   <content_rating type="oars-1.1">
     <content_attribute id="social-info">moderate</content_attribute>
   </content_rating>
+  <releases>
+    <release version="1.110" date="2026-02-24">
+      <description>
+        <p><a href="https://code.visualstudio.com/updates/v1_110">Release notes</a></p>
+      </description>
+    </release>
+  </releases>
 </component>

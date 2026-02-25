@@ -1,10 +1,10 @@
-app-id: com.visualstudio.code
+app-id: com.visualstudio.code.insiders
 runtime: org.freedesktop.Sdk
 runtime-version: "25.08"
 sdk: org.freedesktop.Sdk
 base: org.electronjs.Electron2.BaseApp
 base-version: "25.08"
-command: code
+command: code-insiders
 tags: [proprietary]
 separate-locales: false
 
@@ -43,11 +43,12 @@ finish-args:
   # Environment variables
   - --env=NPM_CONFIG_GLOBALCONFIG=/app/etc/npmrc
   - --env=LD_LIBRARY_PATH=/app/lib
+  
   # Fix cursor scaling on Wayland
   - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
 
 add-extensions:
-  com.visualstudio.code.tool:
+  com.visualstudio.code.insiders.tool:
     directory: tools
     subdirectories: true
     version: "25.08"
@@ -61,7 +62,7 @@ cleanup:
   - "*.la"
 
 modules:
-  - name: vscode
+  - name: vscode-insiders
     buildsystem: simple
 
     build-commands:
@@ -70,24 +71,23 @@ modules:
       - cp -r * /app/vscode
 
       # Install launcher script
-      - install -Dm755 code.sh /app/bin/code
+      - install -Dm755 code-insiders.sh /app/bin/code-insiders
 
       # Ensure helper binaries are executable
-      - chmod +x /app/vscode/code
+      - chmod +x /app/vscode/code-insiders
       - chmod +x /app/vscode/chrome-sandbox || true
 
       # Install desktop integration files
-      - install -Dm644 vscode_64.png /app/share/icons/hicolor/64x64/apps/com.visualstudio.code.png
-      - install -Dm644 vscode_128.png /app/share/icons/hicolor/128x128/apps/com.visualstudio.code.png
-      - install -Dm644 vscode_256.png /app/share/icons/hicolor/256x256/apps/com.visualstudio.code.png
-      - install -Dm644 vscode_512.png /app/share/icons/hicolor/512x512/apps/com.visualstudio.code.png
-      - install -Dm644 vscode.svg /app/share/icons/hicolor/scalable/apps/com.visualstudio.code.svg
-      - install -Dm644 com.visualstudio.code.metainfo.xml -t /app/share/metainfo
-      - install -Dm644 com.visualstudio.code.desktop -t /app/share/applications
-      - install -Dm644 com.visualstudio.code-url-handler.desktop -t /app/share/applications
+      - install -Dm644 vscode_insiders_64.png /app/share/icons/hicolor/64x64/apps/com.visualstudio.code.insiders.png
+      - install -Dm644 vscode_insiders_128.png /app/share/icons/hicolor/128x128/apps/com.visualstudio.code.insiders.png
+      - install -Dm644 vscode_insiders_256.png /app/share/icons/hicolor/256x256/apps/com.visualstudio.code.insiders.png
+      - install -Dm644 vscode_insiders_512.png /app/share/icons/hicolor/512x512/apps/com.visualstudio.code.insiders.png
+      - install -Dm644 vscode_insiders.svg /app/share/icons/hicolor/scalable/apps/com.visualstudio.code.insiders.svg
+      - install -Dm644 com.visualstudio.code.insiders.metainfo.xml -t /app/share/metainfo
+      - install -Dm644 com.visualstudio.code.insiders.desktop -t /app/share/applications
+      - install -Dm644 com.visualstudio.code.insiders-url-handler.desktop -t /app/share/applications
       - install -Dm644 com.visualstudio.code-workspace.xml -t /app/share/mime/packages
       - install -Dm644 npmrc -t /app/etc
-      - install -Dm644 flatpak-warning.txt -t /app/share/vscode
 
       # Create tools extension mount point
       - mkdir /app/tools
@@ -98,29 +98,27 @@ modules:
         archive-type: tar-gzip
         sha256: PLACEHOLDER
       - type: file
-        path: code.sh
+        path: ../../scripts/code-insiders.sh
       - type: file
-        path: flatpak-warning.txt
+        path: ../../assets/npmrc
       - type: file
-        path: npmrc
+        path: com.visualstudio.code.insiders.metainfo.xml
       - type: file
-        path: com.visualstudio.code.metainfo.xml
+        path: com.visualstudio.code.insiders.desktop
       - type: file
-        path: com.visualstudio.code.desktop
+        path: com.visualstudio.code.insiders-url-handler.desktop
       - type: file
-        path: com.visualstudio.code-url-handler.desktop
+        path: ../shared/com.visualstudio.code-workspace.xml
       - type: file
-        path: com.visualstudio.code-workspace.xml
+        path: ../../assets/icons/vscode_insiders_64.png
       - type: file
-        path: icons/vscode_64.png
+        path: ../../assets/icons/vscode_insiders_128.png
       - type: file
-        path: icons/vscode_128.png
+        path: ../../assets/icons/vscode_insiders_256.png
       - type: file
-        path: icons/vscode_256.png
+        path: ../../assets/icons/vscode_insiders_512.png
       - type: file
-        path: icons/vscode_512.png
-      - type: file
-        path: icons/vscode.svg
+        path: ../../assets/icons/vscode_insiders.svg
 
   - name: kerberos
     subdir: src
@@ -131,7 +129,7 @@ modules:
         url: https://kerberos.org/dist/krb5/1.22/krb5-1.22.2.tar.gz
         sha256: 3243ffbc8ea4d4ac22ddc7dd2a1dc54c57874c40648b60ff97009763554eaf13
       - type: file
-        path: krb5.conf
+        path: ../../assets/krb5.conf
 
   - name: host-spawn
     buildsystem: simple

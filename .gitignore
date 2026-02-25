@@ -1,2 +1,12 @@
 vendor
 .DS_Store
+
+# Flatpak build outputs
+build-dir/
+repo/
+.flatpak-builder/
+*.flatpak
+
+# Temporary editor/shell files
+*~
+*.swp

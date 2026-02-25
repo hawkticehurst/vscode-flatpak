@@ -2,6 +2,13 @@ name: Build VS Code Flatpak (Stable)
 
 on:
   workflow_dispatch:
+  schedule:
+    # Run every 6 hours to check upstream for a new Stable archive.
+    # The workflow only builds when a new upstream SHA is detected.
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -10,6 +17,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Install Flatpak & Builder
         run: |
@@ -23,10 +33,12 @@ jobs:
             org.freedesktop.Sdk//25.08 \
             org.electronjs.Electron2.BaseApp//25.08
 
-      - name: Download VS Code and calculate checksum
-        id: checksum
+      - name: Resolve VS Code archive and decide whether to build
+        id: check
         run: |
           CHANNEL="stable"
+          TAG_PREFIX="vscode-stable-sha"
+
           # Resolve the final CDN URL from the /latest/ redirect.
           # We use the resolved CDN URL in the manifest so flatpak-builder
           # downloads from a stable, deterministic URL (not /latest/ which
@@ -38,41 +50,78 @@ jobs:
             echo "Error: Download failed or file is empty"
             exit 1
           fi
+
           SHA=$(sha256sum /tmp/vscode.tar.gz | awk '{print $1}')
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "url=$CDN_URL" >> $GITHUB_OUTPUT
+          TAG="${TAG_PREFIX}-${SHA:0:12}"
+
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            BUILD_NEEDED=false
+          else
+            BUILD_NEEDED=true
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SHOULD_BUILD=true
+          else
+            SHOULD_BUILD="${BUILD_NEEDED}"
+          fi
+
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "url=$CDN_URL" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "build_needed=$BUILD_NEEDED" >> "$GITHUB_OUTPUT"
+          echo "should_build=$SHOULD_BUILD" >> "$GITHUB_OUTPUT"
+
           echo "Calculated checksum: $SHA"
+          echo "Build needed (new upstream): $BUILD_NEEDED"
+          echo "Should build in this run: $SHOULD_BUILD"
+
+      - name: Skip build (no new Stable archive)
+        if: steps.check.outputs.should_build != 'true'
+        run: echo "No new Stable archive detected. Skipping build steps."
 
       - name: Patch Flatpak manifest with resolved URL and checksum
+        if: steps.check.outputs.should_build == 'true'
         run: |
-          MANIFEST="com.visualstudio.code.yaml"
+          MANIFEST="flatpak/stable/com.visualstudio.code.yaml"
           # Replace the placeholder URL with the resolved CDN URL
           sed -i \
-            "s|url: PLACEHOLDER_URL|url: ${{ steps.checksum.outputs.url }}|" \
+            "s|url: PLACEHOLDER_URL|url: ${{ steps.check.outputs.url }}|" \
             "$MANIFEST"
           # Replace the placeholder checksum
           sed -i \
-            "s|sha256: PLACEHOLDER|sha256: ${{ steps.checksum.outputs.sha }}|" \
+            "s|sha256: PLACEHOLDER|sha256: ${{ steps.check.outputs.sha }}|" \
             "$MANIFEST"
           echo "Updated manifest:"
           grep -E 'url:|sha256:' "$MANIFEST" | head -4
 
       - name: Build Flatpak
+        if: steps.check.outputs.should_build == 'true'
         run: |
           mkdir -p build-dir repo
           flatpak-builder \
             --force-clean \
             --repo=repo \
             build-dir \
-            com.visualstudio.code.yaml
+            flatpak/stable/com.visualstudio.code.yaml
 
       - name: Export Flatpak bundle
+        if: steps.check.outputs.should_build == 'true'
         run: |
           flatpak build-bundle repo vscode-flatpak-stable.flatpak com.visualstudio.code
           ls -lh vscode-flatpak-stable.flatpak
 
       - name: Upload Flatpak artifact
+        if: steps.check.outputs.should_build == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: vscode-flatpak-stable
           path: vscode-flatpak-stable.flatpak
+
+      - name: Tag processed Stable archive
+        if: steps.check.outputs.build_needed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.check.outputs.tag }}"
+          git push origin "refs/tags/${{ steps.check.outputs.tag }}" || true
