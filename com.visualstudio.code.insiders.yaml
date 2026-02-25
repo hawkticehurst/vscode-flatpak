@@ -77,7 +77,10 @@ modules:
       - chmod +x /app/vscode/chrome-sandbox || true
 
       # Install desktop integration files
-      - install -Dm644 vscode_insiders.png /app/share/icons/hicolor/1024x1024/apps/com.visualstudio.code.insiders.png
+      - install -Dm644 vscode_insiders_64.png /app/share/icons/hicolor/64x64/apps/com.visualstudio.code.insiders.png
+      - install -Dm644 vscode_insiders_128.png /app/share/icons/hicolor/128x128/apps/com.visualstudio.code.insiders.png
+      - install -Dm644 vscode_insiders_256.png /app/share/icons/hicolor/256x256/apps/com.visualstudio.code.insiders.png
+      - install -Dm644 vscode_insiders_512.png /app/share/icons/hicolor/512x512/apps/com.visualstudio.code.insiders.png
       - install -Dm644 vscode_insiders.svg /app/share/icons/hicolor/scalable/apps/com.visualstudio.code.insiders.svg
       - install -Dm644 com.visualstudio.code.insiders.metainfo.xml -t /app/share/metainfo
       - install -Dm644 com.visualstudio.code.insiders.desktop -t /app/share/applications
@@ -109,7 +112,13 @@ modules:
       - type: file
         path: com.visualstudio.code-workspace.xml
       - type: file
-        path: icons/vscode_insiders.png
+        path: icons/vscode_insiders_64.png
+      - type: file
+        path: icons/vscode_insiders_128.png
+      - type: file
+        path: icons/vscode_insiders_256.png
+      - type: file
+        path: icons/vscode_insiders_512.png
       - type: file
         path: icons/vscode_insiders.svg
 
