@@ -1,6 +1,6 @@
-# Visual Studio Code Flatpak
+# Visual Studio Code Flatpak / AppImage
 
-A set of prototype build pipelines for VS Code and VS Code Insiders flatpak distributions.
+A set of prototype build pipelines for VS Code and VS Code Insiders Flatpak and AppImage distributions.
 
 ## Install
 
@@ -8,14 +8,22 @@ This repository checks for new VS Code and VS Code Insiders versions every 6 hou
 
 Check the latest published builds on the Releases page: https://github.com/hawkticehurst/vscode-flatpak/releases.
 
-After downloading a release asset, install it from the directory where the `.flatpak` file was saved:
+After downloading a release asset, install or run it from the directory where it was saved:
 
 ```sh
-# Stable build artifact
+# Stable Flatpak build artifact
 flatpak install --user ./vscode-flatpak-stable.flatpak
 
-# Insiders build artifact
+# Insiders Flatpak build artifact
 flatpak install --user ./vscode-flatpak-insider.flatpak
+
+# Stable AppImage build artifact
+chmod +x ./vscode-appimage-stable.AppImage
+./vscode-appimage-stable.AppImage
+
+# Insiders AppImage build artifact
+chmod +x ./vscode-appimage-insiders.AppImage
+./vscode-appimage-insiders.AppImage
 ```
 
 For a GUI-based experience, you can also use [Warehouse](https://flathub.org/en/apps/io.github.flattool.Warehouse) to manage the installation of these apps.
@@ -117,7 +125,7 @@ ls /app/bin   # bundled with VS Code flatpak
 
 ## Building
 
-The flatpak is built using split CI targets for Stable and Insiders.
+The repository uses split CI targets for Stable and Insiders across both Flatpak and AppImage packaging.
 
 Manifests:
 
@@ -128,13 +136,17 @@ GitHub Actions workflows:
 
 - Stable workflow: [.github/workflows/flatpak-build-stable.yml](.github/workflows/flatpak-build-stable.yml)
 - Insiders workflow: [.github/workflows/flatpak-build-insiders.yml](.github/workflows/flatpak-build-insiders.yml)
+- Stable AppImage workflow: [.github/workflows/appimage-build-stable.yml](.github/workflows/appimage-build-stable.yml)
+- Insiders AppImage workflow: [.github/workflows/appimage-build-insiders.yml](.github/workflows/appimage-build-insiders.yml)
 
-Each workflow independently resolves the current channel archive URL and patches the corresponding manifest checksum before building.
+Each workflow independently resolves the current channel archive URL and only builds when a new upstream archive SHA is detected.
 
 Artifacts produced by CI:
 
-- Stable: `vscode-flatpak-stable.flatpak`
-- Insiders: `vscode-flatpak-insider.flatpak`
+- Stable Flatpak: `vscode-flatpak-stable.flatpak`
+- Insiders Flatpak: `vscode-flatpak-insider.flatpak`
+- Stable AppImage: `vscode-appimage-stable.AppImage`
+- Insiders AppImage: `vscode-appimage-insiders.AppImage`
 
 To build locally:
 
@@ -142,11 +154,19 @@ To build locally:
 # Install flatpak-builder if not already installed
 flatpak install flathub org.flatpak.Builder
 
-# Build
+# Build Stable Flatpak
 flatpak-builder --force-clean build-dir flatpak/stable/com.visualstudio.code.yaml
 
-# Build Insiders
+# Build Insiders Flatpak
 flatpak-builder --force-clean build-dir flatpak/insiders/com.visualstudio.code.insiders.yaml
+
+# Build Stable AppImage
+STABLE_URL=$(curl -sIL -o /dev/null -w '%{url_effective}' https://update.code.visualstudio.com/latest/linux-x64/stable)
+bash scripts/build-appimage.sh stable "$STABLE_URL" "local" ./vscode-appimage-stable.AppImage
+
+# Build Insiders AppImage
+INSIDERS_URL=$(curl -sIL -o /dev/null -w '%{url_effective}' https://update.code.visualstudio.com/latest/linux-x64/insider)
+bash scripts/build-appimage.sh insiders "$INSIDERS_URL" "local" ./vscode-appimage-insiders.AppImage
 ```
 
 > **Note:** `url: PLACEHOLDER_URL` and `sha256: PLACEHOLDER` in manifests are replaced automatically by CI. For local builds, download the target archive and update both fields manually.

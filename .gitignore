@@ -6,6 +6,7 @@ build-dir/
 repo/
 .flatpak-builder/
 *.flatpak
+*.AppImage
 
 # Temporary editor/shell files
 *~
