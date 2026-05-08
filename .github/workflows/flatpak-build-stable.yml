@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -125,7 +125,7 @@ jobs:
 
       - name: Upload Flatpak artifact
         if: steps.check.outputs.should_build == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vscode-flatpak-stable
           path: vscode-flatpak-stable.flatpak
