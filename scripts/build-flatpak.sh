@@ -36,7 +36,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-MANIFEST_PATH="${WORKDIR}/$(basename "${MANIFEST_SOURCE}")"
+MANIFEST_DIR=$(dirname "${MANIFEST_SOURCE}")
+MANIFEST_PATH=$(mktemp "${MANIFEST_DIR}/.$(basename "${MANIFEST_SOURCE}").XXXXXX")
 BUILD_DIR="${WORKDIR}/build-dir"
 REPO_DIR="${WORKDIR}/repo"
 
