@@ -33,12 +33,12 @@ esac
 WORKDIR=$(mktemp -d)
 cleanup() {
   rm -rf "${WORKDIR}"
+  rm -f "${MANIFEST_PATH:-}"
 }
 trap cleanup EXIT
 
 MANIFEST_DIR=$(dirname "${MANIFEST_SOURCE}")
-TEMP_MANIFEST_DIR=$(mktemp -d "${MANIFEST_DIR}/.build-flatpak.XXXXXX")
-MANIFEST_PATH="${TEMP_MANIFEST_DIR}/$(basename "${MANIFEST_SOURCE}")"
+MANIFEST_PATH=$(mktemp --suffix ".yaml" "${MANIFEST_DIR}/.build-flatpak.XXXXXX")
 BUILD_DIR="${WORKDIR}/build-dir"
 REPO_DIR="${WORKDIR}/repo"
 STATE_DIR="${WORKDIR}/.flatpak-builder"
