@@ -1,0 +1,174 @@
+name: Build VS Code Release Bundle
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-bundle
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y curl tar desktop-file-utils flatpak flatpak-builder
+
+      - name: Add Flathub and install SDK
+        run: |
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y flathub \
+            org.freedesktop.Sdk//25.08 \
+            org.electronjs.Electron2.BaseApp//25.08
+
+      - name: Resolve Stable archive
+        id: stable
+        run: |
+          bash scripts/resolve-vscode-release.sh \
+            stable \
+            vscode-stable-sha \
+            "$GITHUB_OUTPUT" \
+            "${{ github.event_name }}"
+
+      - name: Resolve Insiders archive
+        id: insiders
+        run: |
+          bash scripts/resolve-vscode-release.sh \
+            insiders \
+            vscode-insiders-sha \
+            "$GITHUB_OUTPUT" \
+            "${{ github.event_name }}"
+
+      - name: Decide whether to build
+        id: decision
+        run: |
+          if [ "${{ steps.stable.outputs.should_build }}" = 'true' ] || [ "${{ steps.insiders.outputs.should_build }}" = 'true' ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ "${{ steps.stable.outputs.build_needed }}" = 'true' ] || [ "${{ steps.insiders.outputs.build_needed }}" = 'true' ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip build
+        if: steps.decision.outputs.should_build != 'true'
+        run: echo "No new upstream archives detected. Skipping build steps."
+
+      - name: Build Stable Flatpak
+        if: steps.decision.outputs.should_build == 'true'
+        run: |
+          bash scripts/build-flatpak.sh \
+            stable \
+            "${{ steps.stable.outputs.url }}" \
+            "${{ steps.stable.outputs.sha }}" \
+            release/vscode-flatpak-stable.flatpak
+
+      - name: Build Stable AppImage
+        if: steps.decision.outputs.should_build == 'true'
+        run: |
+          bash scripts/build-appimage.sh \
+            stable \
+            "${{ steps.stable.outputs.url }}" \
+            "${{ steps.stable.outputs.version }}" \
+            release/vscode-appimage-stable.AppImage
+
+      - name: Build Insiders Flatpak
+        if: steps.decision.outputs.should_build == 'true'
+        run: |
+          bash scripts/build-flatpak.sh \
+            insiders \
+            "${{ steps.insiders.outputs.url }}" \
+            "${{ steps.insiders.outputs.sha }}" \
+            release/vscode-flatpak-insider.flatpak
+
+      - name: Build Insiders AppImage
+        if: steps.decision.outputs.should_build == 'true'
+        run: |
+          bash scripts/build-appimage.sh \
+            insiders \
+            "${{ steps.insiders.outputs.url }}" \
+            "${{ steps.insiders.outputs.version }}" \
+            release/vscode-appimage-insiders.AppImage
+
+      - name: Upload workflow artifact bundle
+        if: steps.decision.outputs.should_build == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode-release-bundle
+          path: release/
+
+      - name: Tag processed Stable archive
+        if: steps.stable.outputs.build_needed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.stable.outputs.tag }}"
+          git push origin "refs/tags/${{ steps.stable.outputs.tag }}"
+
+      - name: Tag processed Insiders archive
+        if: steps.insiders.outputs.build_needed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.insiders.outputs.tag }}"
+          git push origin "refs/tags/${{ steps.insiders.outputs.tag }}"
+
+      - name: Prepare release metadata
+        if: steps.decision.outputs.should_release == 'true'
+        id: release_meta
+        run: |
+          sanitize() {
+            printf '%s' "$1" | tr -cs '[:alnum:]._-' '-'
+          }
+
+          stable_version='${{ steps.stable.outputs.version }}'
+          insiders_version='${{ steps.insiders.outputs.version }}'
+          stable_sha='${{ steps.stable.outputs.sha }}'
+          insiders_sha='${{ steps.insiders.outputs.sha }}'
+
+          release_tag="vscode-$(sanitize "${stable_version}")-insiders-$(sanitize "${insiders_version}")-${stable_sha:0:7}-${insiders_sha:0:7}"
+          release_title="VS Code Stable v${stable_version} / Insiders v${insiders_version}"
+
+          {
+            echo "tag=${release_tag}"
+            echo "title=${release_title}"
+            echo 'notes<<EOF'
+            echo "Automated release bundle containing the latest VS Code Stable and Insiders Flatpak/AppImage builds."
+            echo
+            echo "Stable version: ${stable_version}"
+            echo "Stable SHA: ${stable_sha}"
+            echo "Insiders version: ${insiders_version}"
+            echo "Insiders SHA: ${insiders_sha}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release bundle
+        if: steps.decision.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.release_meta.outputs.tag }}" \
+            release/vscode-flatpak-stable.flatpak \
+            release/vscode-appimage-stable.AppImage \
+            release/vscode-flatpak-insider.flatpak \
+            release/vscode-appimage-insiders.AppImage \
+            --title "${{ steps.release_meta.outputs.title }}" \
+            --notes "${{ steps.release_meta.outputs.notes }}"

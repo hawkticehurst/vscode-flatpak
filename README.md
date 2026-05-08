@@ -1,10 +1,10 @@
 # Visual Studio Code Flatpak / AppImage
 
-A set of prototype build pipelines for VS Code and VS Code Insiders Flatpak and AppImage distributions.
+A set of automated build pipelines for VS Code and VS Code Insiders Flatpak and AppImage distributions.
 
 ## Install
 
-This repository checks for new VS Code and VS Code Insiders versions every 6 hours. If a new upstream version is found, a new flatpak build is triggered automatically.
+This repository checks for new VS Code and VS Code Insiders archives every 6 hours. When either upstream channel changes, CI builds a bundled release containing all four artifacts so the Releases page stays grouped by build cycle.
 
 Check the latest published builds on the Releases page: https://github.com/hawkticehurst/vscode-flatpak/releases.
 
@@ -125,21 +125,18 @@ ls /app/bin   # bundled with VS Code flatpak
 
 ## Building
 
-The repository uses split CI targets for Stable and Insiders across both Flatpak and AppImage packaging.
+The repository uses one scheduled GitHub Actions workflow that resolves both upstream channels and publishes a single GitHub release containing all Flatpak and AppImage artifacts.
 
 Manifests:
 
 - Stable: [flatpak/stable/com.visualstudio.code.yaml](flatpak/stable/com.visualstudio.code.yaml)
 - Insiders: [flatpak/insiders/com.visualstudio.code.insiders.yaml](flatpak/insiders/com.visualstudio.code.insiders.yaml)
 
-GitHub Actions workflows:
+GitHub Actions workflow:
 
-- Stable workflow: [.github/workflows/flatpak-build-stable.yml](.github/workflows/flatpak-build-stable.yml)
-- Insiders workflow: [.github/workflows/flatpak-build-insiders.yml](.github/workflows/flatpak-build-insiders.yml)
-- Stable AppImage workflow: [.github/workflows/appimage-build-stable.yml](.github/workflows/appimage-build-stable.yml)
-- Insiders AppImage workflow: [.github/workflows/appimage-build-insiders.yml](.github/workflows/appimage-build-insiders.yml)
+- Bundled release workflow: [.github/workflows/release-bundle.yml](.github/workflows/release-bundle.yml)
 
-Each workflow independently resolves the current channel archive URL and only builds when a new upstream archive SHA is detected.
+The workflow resolves both upstream archive URLs, tracks processed upstream SHAs with lightweight git tags, rebuilds the current artifacts, and publishes a single release whenever either channel changes.
 
 Artifacts produced by CI:
 
@@ -155,10 +152,16 @@ To build locally:
 flatpak install flathub org.flatpak.Builder
 
 # Build Stable Flatpak
-flatpak-builder --force-clean build-dir flatpak/stable/com.visualstudio.code.yaml
+STABLE_URL=$(curl -sIL -o /dev/null -w '%{url_effective}' https://update.code.visualstudio.com/latest/linux-x64/stable)
+curl -L --fail -o /tmp/vscode-stable.tar.gz "$STABLE_URL"
+STABLE_SHA=$(sha256sum /tmp/vscode-stable.tar.gz | awk '{print $1}')
+bash scripts/build-flatpak.sh stable "$STABLE_URL" "$STABLE_SHA" ./vscode-flatpak-stable.flatpak
 
 # Build Insiders Flatpak
-flatpak-builder --force-clean build-dir flatpak/insiders/com.visualstudio.code.insiders.yaml
+INSIDERS_URL=$(curl -sIL -o /dev/null -w '%{url_effective}' https://update.code.visualstudio.com/latest/linux-x64/insider)
+curl -L --fail -o /tmp/vscode-insiders.tar.gz "$INSIDERS_URL"
+INSIDERS_SHA=$(sha256sum /tmp/vscode-insiders.tar.gz | awk '{print $1}')
+bash scripts/build-flatpak.sh insiders "$INSIDERS_URL" "$INSIDERS_SHA" ./vscode-flatpak-insider.flatpak
 
 # Build Stable AppImage
 STABLE_URL=$(curl -sIL -o /dev/null -w '%{url_effective}' https://update.code.visualstudio.com/latest/linux-x64/stable)
@@ -169,4 +172,12 @@ INSIDERS_URL=$(curl -sIL -o /dev/null -w '%{url_effective}' https://update.code.
 bash scripts/build-appimage.sh insiders "$INSIDERS_URL" "local" ./vscode-appimage-insiders.AppImage
 ```
 
-> **Note:** `url: PLACEHOLDER_URL` and `sha256: PLACEHOLDER` in manifests are replaced automatically by CI. For local builds, download the target archive and update both fields manually.
+> **Note:** `url: PLACEHOLDER_URL` and `sha256: PLACEHOLDER` in the manifests are replaced automatically by the build scripts. You do not need to edit the manifests manually for local builds.
+
+## GearLever
+
+If using GearLever, configure GitHub updates with these values:
+
+- Repo: `hawkticehurst/vscode-flatpak`
+- Release file name: `vscode-appimage-insiders.AppImage`
+- Allow pre-releases: `Off
