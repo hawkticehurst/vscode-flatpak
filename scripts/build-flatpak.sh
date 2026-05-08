@@ -37,9 +37,11 @@ cleanup() {
 trap cleanup EXIT
 
 MANIFEST_DIR=$(dirname "${MANIFEST_SOURCE}")
-MANIFEST_PATH=$(mktemp "${MANIFEST_DIR}/.$(basename "${MANIFEST_SOURCE}").XXXXXX")
+TEMP_MANIFEST_DIR=$(mktemp -d "${MANIFEST_DIR}/.build-flatpak.XXXXXX")
+MANIFEST_PATH="${TEMP_MANIFEST_DIR}/$(basename "${MANIFEST_SOURCE}")"
 BUILD_DIR="${WORKDIR}/build-dir"
 REPO_DIR="${WORKDIR}/repo"
+STATE_DIR="${WORKDIR}/.flatpak-builder"
 
 cp "${MANIFEST_SOURCE}" "${MANIFEST_PATH}"
 sed -i \
@@ -52,6 +54,7 @@ sed -i \
 mkdir -p "$(dirname "${OUTPUT_PATH}")"
 flatpak-builder \
   --force-clean \
+  --state-dir="${STATE_DIR}" \
   --repo="${REPO_DIR}" \
   "${BUILD_DIR}" \
   "${MANIFEST_PATH}"

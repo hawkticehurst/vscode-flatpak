@@ -1,0 +1,147 @@
+app-id: com.visualstudio.code
+runtime: org.freedesktop.Sdk
+runtime-version: "25.08"
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: "25.08"
+command: code
+tags: [proprietary]
+separate-locales: false
+
+finish-args:
+  - --require-version=0.10.3
+
+  # Display / windowing
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+
+  # Audio
+  - --socket=pulseaudio
+
+  # Networking (extensions, marketplace, etc.)
+  - --share=network
+
+  # SSH key forwarding
+  - --socket=ssh-auth
+
+  # File access
+  - --filesystem=host
+
+  # Device access (GPU, USB, etc.)
+  - --device=all
+  - --allow=devel
+
+  # D-Bus access
+  - --talk-name=org.freedesktop.Flatpak
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=com.canonical.AppMenu.Registrar
+  - --talk-name=com.canonical.AppMenu.Registrar.*
+  - --system-talk-name=org.freedesktop.login1
+
+  # Environment variables
+  - --env=NPM_CONFIG_GLOBALCONFIG=/app/etc/npmrc
+  - --env=LD_LIBRARY_PATH=/app/lib
+  # Fix cursor scaling on Wayland
+  - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+
+add-extensions:
+  com.visualstudio.code.tool:
+    directory: tools
+    subdirectories: true
+    version: "25.08"
+    add-ld-path: lib
+    no-autodownload: true
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/gtk-doc
+  - "*.la"
+
+modules:
+  - name: vscode
+    buildsystem: simple
+
+    build-commands:
+      # Install VS Code files
+      - mkdir -p /app/vscode
+      - cp -r * /app/vscode
+
+      # Install launcher script
+      - install -Dm755 code.sh /app/bin/code
+
+      # Ensure helper binaries are executable
+      - chmod +x /app/vscode/code
+      - chmod +x /app/vscode/chrome-sandbox || true
+
+      # Install desktop integration files
+      - install -Dm644 vscode_64.png /app/share/icons/hicolor/64x64/apps/com.visualstudio.code.png
+      - install -Dm644 vscode_128.png /app/share/icons/hicolor/128x128/apps/com.visualstudio.code.png
+      - install -Dm644 vscode_256.png /app/share/icons/hicolor/256x256/apps/com.visualstudio.code.png
+      - install -Dm644 vscode_512.png /app/share/icons/hicolor/512x512/apps/com.visualstudio.code.png
+      - install -Dm644 vscode.svg /app/share/icons/hicolor/scalable/apps/com.visualstudio.code.svg
+      - install -Dm644 com.visualstudio.code.metainfo.xml -t /app/share/metainfo
+      - install -Dm644 com.visualstudio.code.desktop -t /app/share/applications
+      - install -Dm644 com.visualstudio.code-url-handler.desktop -t /app/share/applications
+      - install -Dm644 com.visualstudio.code-workspace.xml -t /app/share/mime/packages
+      - install -Dm644 npmrc -t /app/etc
+
+      # Create tools extension mount point
+      - mkdir /app/tools
+
+    sources:
+      - type: archive
+        url: https://vscode.download.prss.microsoft.com/dbazure/download/stable/8b640eef5a6c6089c029249d48efa5c99adf7d51/code-stable-x64-1778006615.tar.gz
+        archive-type: tar-gzip
+        sha256: 1dc648446074cbc53986ec5737d8cdae1303d098e69fe40d514eb410719db97a
+      - type: file
+        path: ../../scripts/code.sh
+      - type: file
+        path: ../../assets/npmrc
+      - type: file
+        path: com.visualstudio.code.metainfo.xml
+      - type: file
+        path: com.visualstudio.code.desktop
+      - type: file
+        path: com.visualstudio.code-url-handler.desktop
+      - type: file
+        path: ../shared/com.visualstudio.code-workspace.xml
+      - type: file
+        path: ../../assets/icons/vscode_64.png
+      - type: file
+        path: ../../assets/icons/vscode_128.png
+      - type: file
+        path: ../../assets/icons/vscode_256.png
+      - type: file
+        path: ../../assets/icons/vscode_512.png
+      - type: file
+        path: ../../assets/icons/vscode.svg
+
+  - name: kerberos
+    subdir: src
+    post-install:
+      - install -Dm644 ../krb5.conf /app/etc/krb5.conf
+    sources:
+      - type: archive
+        url: https://kerberos.org/dist/krb5/1.22/krb5-1.22.2.tar.gz
+        sha256: 3243ffbc8ea4d4ac22ddc7dd2a1dc54c57874c40648b60ff97009763554eaf13
+      - type: file
+        path: ../../assets/krb5.conf
+
+  - name: host-spawn
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 host-spawn /app/bin/host-spawn
+    sources:
+      - type: file
+        url: https://github.com/1player/host-spawn/releases/download/v1.6.2/host-spawn-x86_64
+        sha256: 077bc09a087292447ba17cfe2156a93f71bf56c4c6be8e38d3abe65c1240f34c
+        dest-filename: host-spawn
+        only-arches: [x86_64]
+      - type: file
+        url: https://github.com/1player/host-spawn/releases/download/v1.6.2/host-spawn-aarch64
+        sha256: 8b30215b0b6b66c8c34a3e22d372dd39020295cd0904608bc2c5f5ecff829e5f
+        dest-filename: host-spawn
+        only-arches: [aarch64]
