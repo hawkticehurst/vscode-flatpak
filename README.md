@@ -1,10 +1,10 @@
 # Visual Studio Code Flatpak / AppImage
 
-A set of automated build pipelines for VS Code and VS Code Insiders Flatpak and AppImage distributions.
+A set of automated build pipelines for VS Code Stable and VS Code Insiders Flatpak and AppImage distributions.
 
 ## Install
 
-This repository checks for new VS Code and VS Code Insiders archives every 6 hours. When either upstream channel changes, CI builds a bundled release containing all four artifacts so the Releases page stays grouped by build cycle.
+Stable releases are built manually. Insiders releases are checked every 6 hours and published automatically when a new upstream Insiders archive is detected.
 
 Check the latest published builds on the Releases page: https://github.com/hawkticehurst/vscode-flatpak/releases.
 
@@ -125,18 +125,21 @@ ls /app/bin   # bundled with VS Code flatpak
 
 ## Building
 
-The repository uses one scheduled GitHub Actions workflow that resolves both upstream channels and publishes a single GitHub release containing all Flatpak and AppImage artifacts.
+The repository uses separate GitHub Actions workflows for Stable and Insiders releases.
 
 Manifests:
 
 - Stable: [flatpak/stable/com.visualstudio.code.yaml](flatpak/stable/com.visualstudio.code.yaml)
 - Insiders: [flatpak/insiders/com.visualstudio.code.insiders.yaml](flatpak/insiders/com.visualstudio.code.insiders.yaml)
 
-GitHub Actions workflow:
+GitHub Actions workflows:
 
-- Bundled release workflow: [.github/workflows/release-bundle.yml](.github/workflows/release-bundle.yml)
+- Stable release workflow: [.github/workflows/release-stable.yml](.github/workflows/release-stable.yml)
+- Insiders release workflow: [.github/workflows/release-insiders.yml](.github/workflows/release-insiders.yml)
 
-The workflow resolves both upstream archive URLs, tracks processed upstream SHAs with lightweight git tags, rebuilds the current artifacts, and publishes a single release whenever either channel changes.
+The Stable workflow is manual and always rebuilds the current Stable Flatpak and AppImage assets before creating or updating a Stable release.
+
+The Insiders workflow runs on a 12-hour cron and publishes a release when a new upstream Insiders archive SHA is detected. Manual runs are also enabled and will create or update the current Insiders release so the workflow can be verified on demand. Processed upstream SHAs are tracked with lightweight git tags.
 
 Artifacts produced by CI:
 
@@ -180,4 +183,9 @@ If using GearLever, configure GitHub updates with these values:
 
 - Repo: `hawkticehurst/vscode-flatpak`
 - Release file name: `vscode-appimage-insiders.AppImage`
-- Allow pre-releases: `Off
+- Allow pre-releases: `Off`
+
+Notes:
+
+- GitHub release assets are uploaded directly as `.AppImage` and `.flatpak` files, so they appear separately on the Releases page.
+- GitHub Actions workflow artifacts are a different feature and are typically downloaded as zip archives. These workflows publish the installable files directly to GitHub Releases.
